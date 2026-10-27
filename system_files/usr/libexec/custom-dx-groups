@@ -1,0 +1,44 @@
+#!/usr/bin/bash
+# Adapted from ublue-os/bazzite-dx system_files/usr/libexec/bazzite-dx-groups
+# (wheel member loop fixed: upstream iterated only the first array element).
+set -euo pipefail
+
+# SCRIPT VERSION
+GROUP_SETUP_VER=1
+GROUP_SETUP_VER_FILE="/etc/ublue/custom-dx-groups"
+GROUP_SETUP_VER_RAN=$(cat "$GROUP_SETUP_VER_FILE" 2>/dev/null || echo "0")
+
+# make the directory if it doesn't exist
+mkdir -p /etc/ublue
+
+# Run script if updated
+if [[ -f $GROUP_SETUP_VER_FILE && "$GROUP_SETUP_VER" = "$GROUP_SETUP_VER_RAN" ]]; then
+    echo "Group setup has already run. Exiting..."
+    exit 0
+fi
+
+# Function to append a group entry to /etc/group
+append_group() {
+    local group_name="$1"
+    if ! grep -q "^$group_name:" /etc/group; then
+        echo "Appending $group_name to /etc/group"
+        grep "^$group_name:" /usr/lib/group | tee -a /etc/group >/dev/null
+    fi
+}
+
+# Setup Groups
+append_group docker
+append_group incus-admin
+append_group libvirt
+
+mapfile -t wheelarray < <(getent group wheel | cut -d: -f4 | tr ',' '\n')
+for user in "${wheelarray[@]}"; do
+    [[ -n $user ]] || continue
+    usermod -aG docker "$user"
+    usermod -aG incus-admin "$user"
+    usermod -aG libvirt "$user"
+done
+
+# Prevent future executions
+echo "Writing state file"
+echo "$GROUP_SETUP_VER" >"$GROUP_SETUP_VER_FILE"

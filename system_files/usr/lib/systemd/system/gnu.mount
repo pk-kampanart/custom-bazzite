@@ -1,0 +1,26 @@
+# Bind /var/gnu onto the empty /gnu toplevel directory baked into the image.
+# The official guix-install.sh unpacks gnu/store under /gnu and keeps state in
+# /var/guix. Do not create /var/guix here: the installer refuses to run if both
+# /gnu and /var/guix already exist. A same-named unit in /etc/systemd/system
+# overrides this one.
+[Unit]
+Description=Mount /var/gnu on /gnu
+Documentation=man:bootc-filesystem(7)
+# DefaultDependencies=no avoids the local-fs.target <-> systemd-tmpfiles-setup
+# ordering cycle: the backing dir under /var is created by tmpfiles.
+DefaultDependencies=no
+Conflicts=umount.target
+Before=umount.target
+After=local-fs.target systemd-tmpfiles-setup.service
+Wants=systemd-tmpfiles-setup.service
+RequiresMountsFor=/var
+Before=guix-daemon.service gnu-store.mount
+
+[Mount]
+What=/var/gnu
+Where=/gnu
+Type=none
+Options=bind
+
+[Install]
+WantedBy=multi-user.target

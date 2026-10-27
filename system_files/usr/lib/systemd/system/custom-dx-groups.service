@@ -1,0 +1,10 @@
+# Adapted from ublue-os/bazzite-dx system_files/usr/lib/systemd/system/bazzite-dx-groups.service
+[Unit]
+Description=Add wheel members to docker, incus-admin and libvirt groups
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/custom-dx-groups
+
+[Install]
+WantedBy=default.target

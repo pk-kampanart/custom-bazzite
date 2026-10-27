@@ -1,0 +1,25 @@
+# Bind /var/home/nix onto the empty /nix toplevel directory baked into the image.
+# Same source path the Determinate nix-installer ostree planner uses, so its
+# /etc/systemd/system/nix.mount is equivalent; a same-named unit in
+# /etc/systemd/system overrides this one.
+[Unit]
+Description=Mount /var/home/nix on /nix
+Documentation=man:bootc-filesystem(7)
+# DefaultDependencies=no avoids the local-fs.target <-> systemd-tmpfiles-setup
+# ordering cycle: the backing dir under /var is created by tmpfiles.
+DefaultDependencies=no
+Conflicts=umount.target
+Before=umount.target
+After=local-fs.target systemd-tmpfiles-setup.service
+Wants=systemd-tmpfiles-setup.service
+RequiresMountsFor=/var/home
+Before=nix-daemon.socket nix-daemon.service
+
+[Mount]
+What=/var/home/nix
+Where=/nix
+Type=none
+Options=bind
+
+[Install]
+WantedBy=multi-user.target
